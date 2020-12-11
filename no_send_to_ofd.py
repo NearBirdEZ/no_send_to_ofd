@@ -150,22 +150,25 @@ def main():
     flag_replace_fn = call_kkt(cur, rnm, fn)
     call_stats_by_kkt(cur, rnm, fn)
     call_replace_fn(cur, flag_replace_fn, rnm)
-    time_in, uuid = check_elastic(rnm, fn)
-    logs, errors = connect_to_ssh(*get_cmd_log(time_in), fn)
-    flag_uuid = 0
-    with open(f'{rnm}_{fn}.txt', 'w') as doc:
-        if '' not in errors:
-            for er in errors:
-                doc.write(f'{er}\n')
-        if '' not in logs:
-            for line in logs:
-                if re.search(uuid, line):
-                    flag_uuid = 1
-                if flag_uuid == 1:
-                    doc.write(f'{line}\n')
-        else:
-            doc.write(f'Информации по {fn} не найдена\n')
-    print(f'Лог записан в файл {rnm}_{fn}.txt\nЧао')
+    try:
+        time_in, uuid = check_elastic(rnm, fn)
+        logs, errors = connect_to_ssh(*get_cmd_log(time_in), fn)
+        flag_uuid = 0
+        with open(f'{rnm}_{fn}.txt', 'w') as doc:
+            if '' not in errors:
+                for er in errors:
+                    doc.write(f'{er}\n')
+            if '' not in logs:
+                for line in logs:
+                    if re.search(uuid, line):
+                        flag_uuid = 1
+                    if flag_uuid == 1:
+                        doc.write(f'{line}\n')
+            else:
+                doc.write(f'Информации по {fn} не найдена\n')
+        print(f'Лог записан в файл {rnm}_{fn}.txt\nЧао')
+    except:
+        print('Эластик ничего не нашел')
     con.close()
 
 
