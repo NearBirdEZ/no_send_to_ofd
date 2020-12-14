@@ -26,7 +26,7 @@ def call_kkt(cursor, reg_number, fiscal_number):
     if rows:
         for row in rows:
             print(f"Заводской номер Фискального накопителя = {row[0]}.")
-            print(f'Отличает ФН в базе от введенного = {"да" if row[0] != fiscal_number else "нет"}')
+            print(f'Отличается актуальный ФН в базе от введенного = {"да" if row[0] != fiscal_number else "нет"}')
             print("Признак активированной ККТ =", row[1])
             print("Касса должна принимать фискальные документы =", row[2])
             print("Дата окончания обслуживания ККТ =", row[3])
@@ -34,7 +34,6 @@ def call_kkt(cursor, reg_number, fiscal_number):
             return True if rows[0][0] != fiscal_number else False
     else:
         print('Информация в таблице kkt не найдена.')
-
 
 
 def call_stats_by_kkt(cursor, reg_number, fiscal_number):
@@ -53,14 +52,15 @@ def call_replace_fn(cursor, flag, reg_number):
     if flag:
         cursor.execute(f"select old_fn, new_fn, date, type from replaced_fn_kkt rfk "
                        f"inner join kkt k on k.id = rfk.kkt_id "
-                       f"where k.register_number_kkt = '{reg_number}'")
+                       f"where k.register_number_kkt = '{reg_number}' order by date desc")
         rows = cursor.fetchall()
         if rows:
             print('Старый номер фискального накопителя\tНовый номер фискального накопителя\tДата замены\tТип замены')
             for row in rows:
-                print(f"{row[0]}\t{row[1]}\t{row[2]}\t{row[3]}")
+                print(f"{row[0]}\t\t{row[1]}\t\t{row[2]}\t\t{row[3]}")
         else:
             print('Информация в таблице stats.by_kkt не найдена.')
+    print('\n')
 
 
 def check_elastic(reg_num, fiscal_num):
@@ -80,11 +80,13 @@ def check_elastic(reg_num, fiscal_num):
     response = requests.post(f'http://{host}:{port}/receipt.*/_search', headers=headers, params=params, data=data,
                              auth=(login, password))
     response_json = response.json()['hits']['hits'][0]['_source']
-    time = datetime.datetime.utcfromtimestamp(response_json['responsemessage']['dateTime'])+timedelta(hours=3)
+    time_in_ofd = datetime.datetime.utcfromtimestamp(response_json['meta']['receiveTimeMs']//1000)+timedelta(hours=3)
+    time_from_kkt = datetime.datetime.utcfromtimestamp(response_json['meta']['dateTimeMs']//1000)+timedelta(hours=3)
     doc_id = response_json['responsemessage']['fiscalDocumentNumber']
-    print(f'Документ в эластике был получен в {time}')
+    print(f'Документ сформирован в ккт {time_from_kkt}')
+    print(f'Документ получен в ОФД {time_in_ofd}')
     print(f'Номер последнего документа в эластике = {doc_id}\n')
-    return time, response_json['meta']['uuid']
+    return time_in_ofd, response_json['meta']['uuid']
 
 
 def take_properties(type_auth):
