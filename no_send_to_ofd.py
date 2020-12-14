@@ -31,9 +31,10 @@ def call_kkt(cursor, reg_number, fiscal_number):
             print("Касса должна принимать фискальные документы =", row[2])
             print("Дата окончания обслуживания ККТ =", row[3])
             print(f"Блокировка ККТ в связи с не оплатой  = {row[4]}\n")
+            return True if rows[0][0] != fiscal_number else False
     else:
         print('Информация в таблице kkt не найдена.')
-    return True if rows[0][0] != fiscal_number else False
+
 
 
 def call_stats_by_kkt(cursor, reg_number, fiscal_number):
@@ -167,7 +168,7 @@ def main():
             else:
                 doc.write(f'Информации по {fn} не найдена\n')
         print(f'Лог записан в файл {rnm}_{fn}.txt\nЧао')
-    except:
+    except IndexError:
         print('Эластик ничего не нашел')
     con.close()
 
