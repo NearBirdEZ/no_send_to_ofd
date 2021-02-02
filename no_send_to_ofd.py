@@ -4,6 +4,7 @@ import psycopg2
 import paramiko
 import requests
 import datetime
+import os
 from datetime import timedelta
 import re
 
@@ -77,7 +78,7 @@ def check_elastic(reg_num, fiscal_num):
            '{"term" : {"requestmessage.kktRegId.raw" : "%s"}}]}},' \
            '"sort" : {"requestmessage.dateTime" : {"order": "desc"}}}' % (fiscal_num, reg_num)
 
-    response = requests.post(f'http://{host}:{port}/receipt.*/_search', headers=headers, params=params, data=data,
+    response = requests.post(f'http://{host}:{port}/*/_search', headers=headers, params=params, data=data,
                              auth=(login, password))
     response_json = response.json()['hits']['hits'][0]['_source']
     time_in_ofd = datetime.datetime.utcfromtimestamp(response_json['meta']['receiveTimeMs']//1000)+timedelta(hours=3)
@@ -146,6 +147,9 @@ def get_cmd_log(date_low):
 def main():
     con = connect_sql()
     cur = con.cursor()
+    
+    if not os.path.isdir("./log_fd"):
+        os.mkdir("./log_fd")
 
     rnm = input('Введите регистрационный номер ККТ\n')
     fn = input('Введите номер фискального накопителя\n')
@@ -157,7 +161,7 @@ def main():
         time_in, uuid = check_elastic(rnm, fn)
         logs, errors = connect_to_ssh(*get_cmd_log(time_in), fn)
         flag_uuid = 0
-        with open(f'{rnm}_{fn}.txt', 'w') as doc:
+        with open(f'./log_fd/{rnm}_{fn}.txt', 'w') as doc:
             if '' not in errors:
                 for er in errors:
                     doc.write(f'{er}\n')
